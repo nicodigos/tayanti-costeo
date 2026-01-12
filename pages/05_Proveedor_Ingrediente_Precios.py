@@ -8,7 +8,7 @@ from services.validators import require_int, require_decimal_gt, require_decimal
 from ui.common import show_error, confirm_box
 from ui.widgets import pick_row_by_id, dropdown_fk
 
-st.title("05 — Proveedor · Ingrediente · Precios")
+st.title("Proveedor · Ingrediente · Precios")
 
 # These tables must exist in your DB:
 proveedor_opts = fetch_lookup("proveedores", id_col="id", label_col="nombre")  # must exist

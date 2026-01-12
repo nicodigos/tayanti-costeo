@@ -8,7 +8,7 @@ from services.validators import require_nonempty, require_int, require_decimal_g
 from ui.common import show_error, confirm_box
 from ui.widgets import pick_row_by_id, dropdown_fk
 
-st.title("09 — Versiones de receta (recetas_insumo_especifica)")
+st.title("Versiones de recetas")
 
 rec_opts = fetch_lookup("recetas_insumo", id_col="id", label_col="nombre")
 uni_opts = fetch_lookup("unidad_de_medida", id_col="id", label_col="nombre")

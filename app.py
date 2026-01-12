@@ -4,7 +4,7 @@ from db.healthcheck import supabase_healthcheck
 
 st.set_page_config(page_title="Recetas CRUD", layout="wide")
 
-st.title("📦 Streamlit CRUD — Supabase")
+st.title("Tayanti Costeo")
 
 ok, msg = supabase_healthcheck()
 if ok:
@@ -16,7 +16,5 @@ else:
 st.markdown(
     """
 Use the pages on the left sidebar to manage each table.
-- FK fields use dropdowns.
-- CRUD uses Supabase REST (no direct Postgres socket).
 """
 )

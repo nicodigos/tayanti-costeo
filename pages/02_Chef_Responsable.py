@@ -6,7 +6,7 @@ from services.validators import require_nonempty
 from ui.common import show_error, confirm_box
 from ui.widgets import pick_row_by_id
 
-st.title("02 — Chef Responsable")
+st.title("Chef Responsable")
 
 rows = repo.list_all()
 st.subheader("Current rows")

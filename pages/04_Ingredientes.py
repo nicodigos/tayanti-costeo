@@ -7,7 +7,7 @@ from services.validators import require_nonempty
 from ui.common import show_error, confirm_box
 from ui.widgets import pick_row_by_id, dropdown_fk
 
-st.title("04 — Ingredientes")
+st.title("Ingredientes")
 
 tipo_opts = fetch_lookup("tipo_de_insumo", id_col="id", label_col="nombre")
 

@@ -8,7 +8,7 @@ from services.validators import require_int, require_decimal_gt
 from ui.common import show_error, confirm_box
 from ui.widgets import pick_row_by_id, dropdown_fk
 
-st.title("10 — Recetas · Insumo · Detalle")
+st.title("Recetas e Insumos")
 
 # -----------------------------
 # Lookups
@@ -25,41 +25,6 @@ rows = repo.list_all()
 st.subheader("Current rows")
 st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
-# ------------------------------------------------------
-# Helpers: decide qué ignorar si ambos están "seleccionados"
-# ------------------------------------------------------
-def decide_component(pip_key: str, sub_key: str, prefer: str = "pip"):
-    """
-    Returns (pip_id_to_send, sub_id_to_send)
-
-    Strategy:
-    - If we detect which one changed vs last snapshot, we keep the changed one and ignore the other.
-    - If we can't detect, fall back to `prefer` ("pip" or "sub").
-    """
-    pip_id = st.session_state.get(pip_key)
-    sub_id = st.session_state.get(sub_key)
-
-    prev_pip = st.session_state.get(pip_key + "__prev")
-    prev_sub = st.session_state.get(sub_key + "__prev")
-
-    pip_changed = (prev_pip is not None and pip_id != prev_pip)
-    sub_changed = (prev_sub is not None and sub_id != prev_sub)
-
-    # Update snapshots for next run
-    st.session_state[pip_key + "__prev"] = pip_id
-    st.session_state[sub_key + "__prev"] = sub_id
-
-    # If we can tell what changed, keep that and ignore the other
-    if sub_changed and not pip_changed:
-        return (None, sub_id)
-    if pip_changed and not sub_changed:
-        return (pip_id, None)
-
-    # If both changed or neither changed, use priority
-    if prefer == "sub":
-        return (None, sub_id)
-    return (pip_id, None)  # default: prefer pip
-
 
 # ======================================================
 # CREATE
@@ -67,18 +32,30 @@ def decide_component(pip_key: str, sub_key: str, prefer: str = "pip"):
 st.divider()
 st.subheader("Create")
 
+# ✅ Outside the form: choose which component UI to load
+component_type_create = st.radio(
+    "Component type",
+    ["Ingrediente", "Subreceta"],
+    horizontal=True,
+    key="det_c_component_type"
+)
+
+use_subreceta_create = component_type_create == "Subreceta"
+
 with st.form("create_detalle"):
     receta_padre_id = dropdown_fk("Receta (con versión)", recetas_especifica_opts, key="det_c_padre")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        pip_id = dropdown_fk("Ingrediente (específico: proveedor/precio)", pip_opts, key="det_c_pip")
-    with col2:
+    # ✅ Inside form: render ONLY ONE picker depending on checkbox
+    if use_subreceta_create:
         subreceta_id = dropdown_fk("Subreceta (con versión)", recetas_especifica_opts, key="det_c_sub")
+        pip_id = None
+    else:
+        pip_id = dropdown_fk("Ingrediente (específico: proveedor/precio)", pip_opts, key="det_c_pip")
+        subreceta_id = None
 
-    cantidad = st.number_input("Cantidad", min_value=0.0, value=1.0)
+    cantidad = st.number_input("Cantidad", min_value=0.0, value=1.0, key="det_c_cantidad")
     unidad_id = dropdown_fk("Unidad", unidad_opts, key="det_c_uni")
-    nota = st.text_input("Nota")
+    nota = st.text_input("Nota", key="det_c_nota")
 
     submitted = st.form_submit_button("Create")
 
@@ -91,8 +68,15 @@ with st.form("create_detalle"):
 
             q = require_decimal_gt(cantidad, "cantidad", Decimal("0"))
 
-            # Decide qué mandar (ignora uno automáticamente)
-            pip_to_send, sub_to_send = decide_component("det_c_pip", "det_c_sub", prefer="pip")
+            # ✅ Enforce exactly one component
+            if use_subreceta_create:
+                if not subreceta_id:
+                    raise ValueError("Subreceta requerida.")
+                pip_to_send, sub_to_send = (None, subreceta_id)
+            else:
+                if not pip_id:
+                    raise ValueError("Ingrediente requerido.")
+                pip_to_send, sub_to_send = (pip_id, None)
 
             payload = {
                 "receta_especifica_id": require_int(receta_padre_id, "receta_especifica_id"),
@@ -110,6 +94,7 @@ with st.form("create_detalle"):
         except Exception as e:
             show_error(e)
 
+
 # ======================================================
 # EDIT / DELETE
 # ======================================================
@@ -122,18 +107,34 @@ if row:
     col1, col2 = st.columns(2)
 
     with col1:
+        # ✅ Outside the form: choose which component editor to load
+        # Initialize default based on the existing row:
+        row_has_sub = bool(row.get("subreceta_especifica_id"))
+        use_subreceta_edit = st.checkbox(
+            "Edit as subrecipe (otherwise ingredient)",
+            value=row_has_sub,
+            key="det_e_use_sub"
+        )
+
         with st.form("edit_detalle"):
             receta_padre_id_e = dropdown_fk("Receta (con versión)", recetas_especifica_opts, key="det_e_padre")
 
-            c1, c2 = st.columns(2)
-            with c1:
-                pip_id_e = dropdown_fk("Ingrediente (específico: proveedor/precio)", pip_opts, key="det_e_pip")
-            with c2:
+            # ✅ Inside form: render ONLY ONE picker depending on checkbox
+            if use_subreceta_edit:
                 subreceta_id_e = dropdown_fk("Subreceta (con versión)", recetas_especifica_opts, key="det_e_sub")
+                pip_id_e = None
+            else:
+                pip_id_e = dropdown_fk("Ingrediente (específico: proveedor/precio)", pip_opts, key="det_e_pip")
+                subreceta_id_e = None
 
-            cantidad_e = st.number_input("Cantidad", min_value=0.0, value=float(row.get("cantidad") or 1.0))
+            cantidad_e = st.number_input(
+                "Cantidad",
+                min_value=0.0,
+                value=float(row.get("cantidad") or 1.0),
+                key="det_e_cantidad"
+            )
             unidad_id_e = dropdown_fk("Unidad", unidad_opts, key="det_e_uni")
-            nota_e = st.text_input("Nota", value=row.get("nota") or "")
+            nota_e = st.text_input("Nota", value=row.get("nota") or "", key="det_e_nota")
 
             submitted_e = st.form_submit_button("Update")
 
@@ -146,8 +147,15 @@ if row:
 
                     q = require_decimal_gt(cantidad_e, "cantidad", Decimal("0"))
 
-                    # Decide qué mandar (ignora uno automáticamente)
-                    pip_to_send_e, sub_to_send_e = decide_component("det_e_pip", "det_e_sub", prefer="pip")
+                    # ✅ Enforce exactly one component
+                    if use_subreceta_edit:
+                        if not subreceta_id_e:
+                            raise ValueError("Subreceta requerida.")
+                        pip_to_send_e, sub_to_send_e = (None, subreceta_id_e)
+                    else:
+                        if not pip_id_e:
+                            raise ValueError("Ingrediente requerido.")
+                        pip_to_send_e, sub_to_send_e = (pip_id_e, None)
 
                     payload = {
                         "receta_especifica_id": require_int(receta_padre_id_e, "receta_especifica_id"),

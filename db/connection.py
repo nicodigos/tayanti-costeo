@@ -13,8 +13,6 @@ HEADERS = {
 }
 
 def rest_get(table, params=None):
-    print("REST_GET", table, params)
-    print("HEADERS", HEADERS) 
     return requests.get(
         f"{BASE}/{table}",
         headers=HEADERS,
@@ -22,8 +20,6 @@ def rest_get(table, params=None):
     )
 
 def rest_post(table, json):
-    print("REST_POST", table, HEADERS)
-    print("HEADERS", HEADERS) 
     return requests.post(
         f"{BASE}/{table}",
         headers=HEADERS,

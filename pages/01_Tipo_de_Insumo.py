@@ -6,7 +6,7 @@ from services.validators import require_nonempty, require_percentage_0_100
 from ui.common import show_error, confirm_box
 from ui.widgets import pick_row_by_id
 
-st.title("01 — Tipo de Insumo")
+st.title("Tipo de Insumo")
 
 rows = repo.list_all()
 st.subheader("Current rows")
