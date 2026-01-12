@@ -8,7 +8,7 @@ from services.validators import require_int, require_decimal_gt
 from ui.common import show_error, confirm_box
 from ui.widgets import pick_row_by_id, dropdown_fk
 
-st.title("Recetas e Insumos")
+st.title("Cruce de Recetas e Insumos")
 
 # -----------------------------
 # Lookups
